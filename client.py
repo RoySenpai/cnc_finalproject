@@ -10,7 +10,7 @@ xid = randint(0, 0xFFFFFFFF)
 
 class DHCPDiscover:
     def __init__(self, xid, hw):
-        self.TransactionID = struct.pack("!L", xid)
+        self.TransactionID = struct.pack("!L", xid) #generate random transactionID
         self.macInBytes = hw
 
     def DHCP(self): #DHCP header packet
@@ -29,13 +29,13 @@ class DHCPDiscover:
         chwpadding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         srchostname = b'\x00' * 64
         bootfilename = b'\x00' * 128
-        magic_cookie = b'\x63\x82\x53\x63' # not sure if this is needed
+        magic_cookie = b'\x63\x82\x53\x63'
         msg_type = b'\x35\x01\x01' #DHCP message type
         end = b'\xff'
         packet = op+HwType+HwAddrLen+HopC+TransactionID+NumOfSec+Flags_B_Res+ciaddr+yiaddr+siaddr+giaddr+chwaddr+chwpadding+srchostname+bootfilename+magic_cookie+msg_type+end
         return packet
 
-    def dhcp_req(self):
+    def dhcp_req(self): #request from DHCP server the desired IP address
         op = b'\x01'
         HwType = b'\x01'
         HwAddrLen = b'\x06'
@@ -51,10 +51,10 @@ class DHCPDiscover:
         chwpadding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         srchostname = b'\x00' * 64
         bootfilename = b'\x00' * 128
-        magic_cookie = b'\x63\x82\x53\x63'  # not sure if this is needed
+        magic_cookie = b'\x63\x82\x53\x63'
         msg_type = b'\x35\x01\x01'  # DHCP message type
         clientID = b'\x3d\x06\x01' + self.macInBytes
-        req_addr = b'\x32\x04' + socket.inet_aton('192.168.0.100')
+        req_addr = b'\x32\x04' + socket.inet_aton('0.0.0.0')
         serverID = b'\x36\x04' + socket.inet_aton('0.0.0.0')
         par_req_list = b'\x37\x05\x01\x03\x06\x0f\x1f'
         end = b'\xff'
@@ -68,10 +68,10 @@ obj = DHCPDiscover(xid, hw)
 packet = obj.DHCP()
 req = obj.dhcp_req()
 
-s.sendto(packet, ("127.0.0.1", 67))
+s.sendto(packet, ("255.255.255.255", 67))
 print("discover sent")
-sleep(1)
-s.sendto(req, ("127.0.0.1", 67))
+sleep(3)
+s.sendto(req, ("255.255.255.255", 67))
 print("request sent")
 
 
