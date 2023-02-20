@@ -1,5 +1,4 @@
 import socket
-import binascii
 import struct
 from random import randint
 from scapy.all import get_if_raw_hwaddr, conf
@@ -15,50 +14,51 @@ class DHCPDiscover:
         self.macInBytes = hw
 
     def DHCP(self): #DHCP header packet
-        op = '\x01'
-        HwType = '\x01'
-        HwAddrLen = '\x06'
-        HopC = '\x00'
+        op = b'\x01'
+        HwType = b'\x01'
+        HwAddrLen = b'\x01'
+        HopC = b'\x00'
         TransactionID = self.TransactionID
-        NumOfSec = '\x00\x00'
-        Flags_B_Res = '\x00\x00'
-        ciaddr = '\x00\x00\x00\x00'
-        yiaddr = '\x00\x00\x00\x00'
-        siaddr = '\x00\x00\x00\x00'
-        giaddr = '\x00\x00\x00\x00'
+        NumOfSec = b'\x00\x00'
+        Flags_B_Res = b'\x00\x00'
+        ciaddr = b'\x00\x00\x00\x00'
+        yiaddr = b'\x00\x00\x00\x00'
+        siaddr = b'\x00\x00\x00\x00'
+        giaddr = b'\x00\x00\x00\x00'
         chwaddr = self.macInBytes
-        chwpadding = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-        srchostname = '\x00' * 64
-        bootfilename = '\x00' * 128
-        magic_cookie = '\x63\x82\x53\x63' # not sure if this is needed
-        msg_type = '\x35\x01\x01' #DHCP message type
-        end = '\xff'
+        chwpadding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+        srchostname = b'\x00' * 64
+        bootfilename = b'\x00' * 128
+        magic_cookie = b'\x63\x82\x53\x63' # not sure if this is needed
+        msg_type = b'\x35\x01\x01' #DHCP message type
+        end = b'\xff'
         packet = op+HwType+HwAddrLen+HopC+TransactionID+NumOfSec+Flags_B_Res+ciaddr+yiaddr+siaddr+giaddr+chwaddr+chwpadding+srchostname+bootfilename+magic_cookie+msg_type+end
         return packet
+
     def dhcp_req(self):
-        op = '\x01'
-        HwType = '\x01'
-        HwAddrLen = '\x06'
-        HopC = '\x00'
+        op = b'\x01'
+        HwType = b'\x01'
+        HwAddrLen = b'\x06'
+        HopC = b'\x00'
         TransactionID = self.TransactionID
-        NumOfSec = '\x00\x00'
-        Flags_B_Res = '\x00\x00'
-        ciaddr = '\x00\x00\x00\x00'
-        yiaddr = '\x00\x00\x00\x00'
-        siaddr = '\x00\x00\x00\x00'
-        giaddr = '\x00\x00\x00\x00'
+        NumOfSec = b'\x00\x00'
+        Flags_B_Res = b'\x00\x00'
+        ciaddr = b'\x00\x00\x00\x00'
+        yiaddr = b'\x00\x00\x00\x00'
+        siaddr = b'\x00\x00\x00\x00'
+        giaddr = b'\x00\x00\x00\x00'
         chwaddr = self.macInBytes
-        chwpadding = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-        srchostname = '\x00' * 64
-        bootfilename = '\x00' * 128
-        magic_cookie = '\x63\x82\x53\x63'  # not sure if this is needed
-        msg_type = '\x35\x01\x01'  # DHCP message type
-        clientID = '\x3d\x07\x01' + self.macInBytes
-        req_addr = '\x32\x04' + socket.inet_aton('127.0.0.1')
-        serverID = '\x36\x04' + socket.inet_aton('127.0.0.1')
-        par_req_list = '\x37\x03\x03\x01\x06'
-        end = '\xff'
-        packet2 = op+HwType+HwAddrLen+HopC+TransactionID+NumOfSec+Flags_B_Res+ciaddr+yiaddr+siaddr+giaddr+chwaddr+chwpadding+srchostname+bootfilename+magic_cookie+msg_type+clientID+req_addr+serverID+par_req_list+end
+        chwpadding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+        srchostname = b'\x00' * 64
+        bootfilename = b'\x00' * 128
+        magic_cookie = b'\x63\x82\x53\x63'  # not sure if this is needed
+        msg_type = b'\x35\x01\x01'  # DHCP message type
+        clientID = b'\x3d\x06\x01' + self.macInBytes
+        req_addr = b'\x32\x04' + socket.inet_aton('192.168.0.100')
+        serverID = b'\x36\x04' + socket.inet_aton('0.0.0.0')
+        par_req_list = b'\x37\x05\x01\x03\x06\x0f\x1f'
+        end = b'\xff'
+        packet2 = op + HwType + HwAddrLen + HopC + TransactionID + NumOfSec + Flags_B_Res + ciaddr + yiaddr + siaddr + giaddr + chwaddr + chwpadding + srchostname + bootfilename + magic_cookie + msg_type + clientID + req_addr + serverID + par_req_list + end
         return packet2
 
 
