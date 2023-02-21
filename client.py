@@ -30,6 +30,7 @@ class DHCP_client(object):
         data, address = sock.recvfrom(MAX_SIZE)
         print("Received DHCP pack.\n")
         # print(data)
+        sock.close()
 
     def get_Discover():
         # DHCP message format
@@ -84,7 +85,39 @@ class DHCP_client(object):
 
         return pack
 
+    def dns_client(query, server):
+        # create a UDP socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # send DNS query to server
+        sock.sendto(query.encode('utf-8'), (server, 53))
+
+        # receive DNS response from server
+        data, address = sock.recvfrom(1024)
+
+        # print DNS response
+        print(data.decode('utf-8'))
+
+        # close socket
+        sock.close()
+
 
 if __name__ == '__main__':
     dhcp_client = DHCP_client()
     dhcp_client.client()
+
+    # create a socket for the dns client
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.connect(('localhost', 9999))
+
+    domain_name = input('Enter domain name: ')
+
+    # send the domain name entered by user to the dns server
+    sock.send(domain_name.encode('utf-8'))
+
+    # receive the IP address response from the dns server
+    ip_address = sock.recv(1024).decode('utf-8')
+
+    print('IP Address:', ip_address)
+
+    sock.close()
