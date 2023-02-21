@@ -1,79 +1,90 @@
 import socket
-import struct
-from random import randint
-from scapy.all import get_if_raw_hwaddr, conf
-from time import sleep
 
-hw = get_if_raw_hwaddr(conf.iface)[1]
-xid = randint(0, 0xFFFFFFFF)
+# Define parameters for ports and packet maximum size
+MAX_SIZE = 1024
+server_Port = 67
+client_Port = 68
 
 
-class DHCPDiscover:
-    def __init__(self, xid, hw):
-        self.TransactionID = struct.pack("!L", xid) #generate random transactionID
-        self.macInBytes = hw
+class DHCP_client(object):
+    def client(self):
+        # Create a socket for the client and send a discovery pacakge in a broadcast
+        print("DHCP Client starting...\n")
+        destination = ('<broadcast>', server_Port)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.bind(('0.0.0.0', client_Port))
 
-    def DHCP(self): #DHCP header packet
-        op = b'\x01'
-        HwType = b'\x01'
-        HwAddrLen = b'\x01'
-        HopC = b'\x00'
-        TransactionID = self.TransactionID
-        NumOfSec = b'\x00\x00'
-        Flags_B_Res = b'\x00\x00'
-        ciaddr = b'\x00\x00\x00\x00'
-        yiaddr = b'\x00\x00\x00\x00'
-        siaddr = b'\x00\x00\x00\x00'
-        giaddr = b'\x00\x00\x00\x00'
-        chwaddr = self.macInBytes
-        chwpadding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-        srchostname = b'\x00' * 64
-        bootfilename = b'\x00' * 128
-        magic_cookie = b'\x63\x82\x53\x63'
-        msg_type = b'\x35\x01\x01' #DHCP message type
-        end = b'\xff'
-        packet = op+HwType+HwAddrLen+HopC+TransactionID+NumOfSec+Flags_B_Res+ciaddr+yiaddr+siaddr+giaddr+chwaddr+chwpadding+srchostname+bootfilename+magic_cookie+msg_type+end
-        return packet
+        print("Sending DHCP discovery.")
+        data = DHCP_client.get_Discover()
+        sock.sendto(data, destination)
 
-    def dhcp_req(self): #request from DHCP server the desired IP address
-        op = b'\x01'
-        HwType = b'\x01'
-        HwAddrLen = b'\x06'
-        HopC = b'\x00'
-        TransactionID = self.TransactionID
-        NumOfSec = b'\x00\x00'
-        Flags_B_Res = b'\x00\x00'
-        ciaddr = b'\x00\x00\x00\x00'
-        yiaddr = b'\x00\x00\x00\x00'
-        siaddr = b'\x00\x00\x00\x00'
-        giaddr = b'\x00\x00\x00\x00'
-        chwaddr = self.macInBytes
-        chwpadding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-        srchostname = b'\x00' * 64
-        bootfilename = b'\x00' * 128
-        magic_cookie = b'\x63\x82\x53\x63'
-        msg_type = b'\x35\x01\x01'  # DHCP message type
-        clientID = b'\x3d\x06\x01' + self.macInBytes
-        req_addr = b'\x32\x04' + socket.inet_aton('0.0.0.0')
-        serverID = b'\x36\x04' + socket.inet_aton('0.0.0.0')
-        par_req_list = b'\x37\x05\x01\x03\x06\x0f\x1f'
-        end = b'\xff'
-        packet2 = op + HwType + HwAddrLen + HopC + TransactionID + NumOfSec + Flags_B_Res + ciaddr + yiaddr + siaddr + giaddr + chwaddr + chwpadding + srchostname + bootfilename + magic_cookie + msg_type + clientID + req_addr + serverID + par_req_list + end
-        return packet2
+        data, address = sock.recvfrom(MAX_SIZE)
+        print("Received DHCP offers.")
+        # print(data)
+
+        print("Sending DHCP request.")
+        data = DHCP_client.get_Request()
+        sock.sendto(data, destination)
+
+        data, address = sock.recvfrom(MAX_SIZE)
+        print("Received DHCP pack.\n")
+        # print(data)
+
+    def get_Discover():
+        # DHCP message format
+        op_Code = bytes([0x01])
+        hw_Type = bytes([0x01])
+        hw_Len = bytes([0x06])
+        hops = bytes([0x00])
+        XID = bytes([0x39, 0x03, 0xF3, 0x26])
+        secs = bytes([0x00, 0x00])
+        flags = bytes([0x00, 0x00])
+        ciaddr = bytes([0x00, 0x00, 0x00, 0x00])
+        yiaddr = bytes([0x00, 0x00, 0x00, 0x00])
+        siaddr = bytes([0x00, 0x00, 0x00, 0x00])
+        giaddr = bytes([0x00, 0x00, 0x00, 0x00])
+        c_Hwaddr1 = bytes([0x00, 0x05, 0x3C, 0x04])
+        c_Hwaddr2 = bytes([0x8D, 0x59, 0x00, 0x00])
+        c_Hwaddr3 = bytes([0x00, 0x00, 0x00, 0x00])
+        c_Hwaddr4 = bytes([0x00, 0x00, 0x00, 0x00])
+        c_Hwaddr5 = bytes(192)
+        magic_Cookie = bytes([0x63, 0x82, 0x53, 0x63])
+        DHCP_Options1 = bytes([53, 1, 1])
+        DHCP_Options2 = bytes([50, 4, 0xC0, 0xA8, 0x01, 0x64])
+
+        pack = op_Code + hw_Type + hw_Len + hops + XID + secs + flags + ciaddr + yiaddr + siaddr + giaddr + c_Hwaddr1 + c_Hwaddr2 + c_Hwaddr3 + c_Hwaddr4 + c_Hwaddr5 + magic_Cookie + DHCP_Options1 + DHCP_Options2
+
+        return pack
+
+    def get_Request():
+        # DHCP message format
+        op_Code = bytes([0x01])
+        hw_Type = bytes([0x01])
+        hw_Len = bytes([0x06])
+        hops = bytes([0x00])
+        XID = bytes([0x39, 0x03, 0xF3, 0x26])
+        secs = bytes([0x00, 0x00])
+        flags = bytes([0x00, 0x00])
+        ciaddr = bytes([0x00, 0x00, 0x00, 0x00])
+        yiaddr = bytes([0x00, 0x00, 0x00, 0x00])
+        siaddr = bytes([0x00, 0x00, 0x00, 0x00])
+        giaddr = bytes([0x00, 0x00, 0x00, 0x00])
+        c_Hwaddr1 = bytes([0x00, 0x0C, 0x29, 0xDD])
+        c_Hwaddr2 = bytes([0x5C, 0xA7, 0x00, 0x00])
+        c_Hwaddr3 = bytes([0x00, 0x00, 0x00, 0x00])
+        c_Hwaddr4 = bytes([0x00, 0x00, 0x00, 0x00])
+        c_Hwaddr5 = bytes(192)
+        magic_Cookie = bytes([0x63, 0x82, 0x53, 0x63])
+        DHCP_Options1 = bytes([53, 1, 3])
+        DHCP_Options2 = bytes([50, 4, 0xC0, 0xA8, 0x01, 0x64])
+        DHCP_Options3 = bytes([54, 4, 0xC0, 0xA8, 0x01, 0x01])
+
+        pack = op_Code + hw_Type + hw_Len + hops + XID + secs + flags + ciaddr + yiaddr + siaddr + giaddr + c_Hwaddr1 + c_Hwaddr2 + c_Hwaddr3 + c_Hwaddr4 + c_Hwaddr5 + magic_Cookie + DHCP_Options1 + DHCP_Options2 + DHCP_Options3
+
+        return pack
 
 
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-obj = DHCPDiscover(xid, hw)
-packet = obj.DHCP()
-req = obj.dhcp_req()
-
-s.sendto(packet, ("255.255.255.255", 67))
-print("discover sent")
-sleep(3)
-s.sendto(req, ("255.255.255.255", 67))
-print("request sent")
-
-
-
-
+if __name__ == '__main__':
+    dhcp_client = DHCP_client()
+    dhcp_client.client()
