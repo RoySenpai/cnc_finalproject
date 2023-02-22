@@ -1,19 +1,22 @@
 import socket
+import time
 
 # Define parameters for ports and packet maximum size
 MAX_SIZE = 1024
-server_Port = 67
-client_Port = 68
+server_DHCPPort = 67
+client_DHCPPort = 68
+port = 1234
+ip = "127.0.0.1"
 
 
 class DHCP_client(object):
     def client(self):
         # Create a socket for the client and send a discovery pacakge in a broadcast
         print("DHCP Client starting...\n")
-        destination = ('<broadcast>', server_Port)
+        destination = ('<broadcast>', server_DHCPPort)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.bind(('0.0.0.0', client_Port))
+        sock.bind(('0.0.0.0', client_DHCPPort))
 
         print("Sending DHCP discovery.")
         data = DHCP_client.get_Discover()
@@ -85,27 +88,8 @@ class DHCP_client(object):
 
         return pack
 
-    def dns_client(query, server):
-        # create a UDP socket
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        # send DNS query to server
-        sock.sendto(query.encode('utf-8'), (server, 53))
-
-        # receive DNS response from server
-        data, address = sock.recvfrom(1024)
-
-        # print DNS response
-        print(data.decode('utf-8'))
-
-        # close socket
-        sock.close()
-
-
-if __name__ == '__main__':
-    dhcp_client = DHCP_client()
-    dhcp_client.client()
-
+def dns_client():
     # create a socket for the dns client
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.connect(('localhost', 9999))
@@ -119,5 +103,23 @@ if __name__ == '__main__':
     ip_address = sock.recv(1024).decode('utf-8')
 
     print('IP Address:', ip_address)
-
     sock.close()
+
+
+def app_client():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((ip, port))
+    list_of_Queries = sock.recv(1024).decode("utf-8")
+    print(list_of_Queries)
+    while True:
+        query = input("Please enter the name of the query you wish to use or the word nothing: ")
+        sock.send(bytes(query, "utf-8"))
+        if query == "nothing":
+            break
+
+
+if __name__ == '__main__':
+    # dhcp_client = DHCP_client()
+    # dhcp_client.client()
+    # dns_client()
+    app_client()
