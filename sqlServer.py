@@ -54,6 +54,7 @@ def remove_worker(connection):
     cursor = connection.cursor()
     work_Id = input("enter worker's work ID:")
     cursor.execute(f"DELETE FROM Workers WHERE [Work ID] = '{work_Id}'")
+    print("Worker removed successfully!")
     connection.commit()
 
 
@@ -198,9 +199,11 @@ def RUDP_Connection():
     # Receive query name from client
     while True:
         try:
+            sock.settimeout(TIMEOUT)
             data, address = sock.recvfrom(max_Size)
             data = data.decode('utf-8')
             if data != "ACK":
+                count_Timeouts = 0
                 print(f"Received from client {address}: {data}")
                 sock.sendto("ACK".encode("utf-8"), (ip, client_Port))
                 desired_Query = data
