@@ -33,11 +33,18 @@ while True:
         break
     data, address = sock.recvfrom(max_Size)
     data = data.decode('utf-8')
+    
     if data == "Timed out":
         print("Server timed out, closing connection...")
         break
-    if data != "ACK":
-        print("Didn't receive Ack from server, closing connection...")
-        break
+        
+    if data != "ACK":  # if server didn't return ACK for the first time, try to send again
+        sock.sendto("ACK".encode("utf-8"), (ip, server_port))
+        sock.sendto(query_name.encode('utf-8'), (ip, server_port))
+        data, address = sock.recvfrom(max_Size)
+        data = data.decode('utf-8')
+        if data != "ACK":  # if server didn't return ACK for the second time, close the connection.
+            print("Didn't receive Ack from server for the second time, closing connection...")
+            break
 # Close socket
 sock.close()
