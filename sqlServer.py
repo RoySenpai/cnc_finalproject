@@ -1,10 +1,15 @@
 import socket
 import pyodbc
+import time
 
 # DESKTOP-QH4FU0U\SQLEXPRESS - database address
 # Define ip and port and database address
+TIMEOUT = 7
+max_Retries = 3
+client_Port = 5000
 ip = "127.0.0.1"
 port = 1234
+max_Size = 1024
 connection = pyodbc.connect(
     'Driver={SQL Server};' 'Server=DESKTOP-QH4FU0U\SQLEXPRESS; ' 'Database=project;' 'Trusted_connection=yes;')
 
@@ -125,12 +130,12 @@ def tcp_connection():
     while True:
         client, address = sock.accept()
         print(f"Connected to the client - {address[0]}:{address[1]}")
-        list_of_Queries = "print workers\nprint workers sorted\nadd worker\nremove worker\nget worker details\nget " \
+        list_of_Queries = "list of queries: \nprint workers\nprint workers sorted\nadd worker\nremove worker\nget worker details\nget " \
                           "first n workers details\nupdate worker salary\ncount workers\ncount workers with given " \
                           "salary\ncheck worker exists\n "
         client.send(bytes(list_of_Queries, "utf-8"))
         while True:
-            desired_Query = client.recv(1024)
+            desired_Query = client.recv(max_Size)
             desired_Query.decode("utf-8")
             if desired_Query == b"print workers":
                 print_workers(connection)
@@ -158,5 +163,83 @@ def tcp_connection():
                 print("Query entered doesn't exist")
 
 
+def reliable_send(sock, data, address):
+    retries = 0
+    ack_received = False
+    while not ack_received and retries < max_Retries:
+        sock.sendto(data, address)
+        sock.settimeout(TIMEOUT)
+        try:
+            ack, _ = sock.recvfrom(max_Size)
+            if ack == b"ACK":
+                ack_received = True
+        except socket.timeout:
+            retries += 1
+    if not ack_received:
+        print("No response received.")
+        print("Closing the connection...")
+        exit()
+
+
+def RUDP_Connection():
+    # Create UDP socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind((ip, port))
+    print("UDP Server started")
+
+    # Receive initial message from client
+    data, address = sock.recvfrom(max_Size)
+    print(f"Received from client {address}: {data.decode('utf-8')}")
+
+    # Send list of queries to client
+    queries = "list of queries: \nprint workers\nprint workers sorted\nadd worker\nremove worker\nget worker details\nget first n workers details\nupdate worker salary\ncount workers\ncount workers with given salary\ncheck worker exists\n"
+    reliable_send(sock, queries.encode('utf-8'), address)
+    count_Timeouts = 0
+    # Receive query name from client
+    while True:
+        try:
+            data, address = sock.recvfrom(max_Size)
+            data = data.decode('utf-8')
+            if data != "ACK":
+                print(f"Received from client {address}: {data}")
+                sock.sendto("ACK".encode("utf-8"), (ip, client_Port))
+                desired_Query = data
+                if desired_Query == "print workers":
+                    print_workers(connection)
+                elif desired_Query == "print workers sorted":
+                    print_workers_sorted(connection)
+                elif desired_Query == "add worker":
+                    add_worker(connection)
+                elif desired_Query == "remove worker":
+                    remove_worker(connection)
+                elif desired_Query == "get worker details":
+                    get_worker_details(connection)
+                elif desired_Query == "get first n workers details":
+                    get_first_n_workers_details(connection)
+                elif desired_Query == "update worker salary":
+                    update_worker_salary(connection)
+                elif desired_Query == "count workers with given salary":
+                    count_workers_with_given_salary(connection)
+                elif desired_Query == "check worker exists":
+                    check_worker_exists(connection)
+                elif desired_Query == "count workers":
+                    count_workers(connection)
+                elif desired_Query == "nothing":
+                    break
+                else:
+                    print("Query entered doesn't exist")
+        except socket.timeout:
+            print("Timeout while waiting for query")
+            count_Timeouts += 1
+            if count_Timeouts == 3:
+                sock.sendto("Timed out".encode("utf-8"), (ip, client_Port))
+                print("Stopped receiving requests from client, closing server...")
+                break
+    sock.close()
+
+
 if __name__ == '__main__':
-    tcp_connection()
+    # Starts the SQL server, TCP connection
+    # tcp_connection()
+    # Starts the SQL server, RUDP connection
+    RUDP_Connection()
