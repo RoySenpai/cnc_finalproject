@@ -1,11 +1,10 @@
 import socket
 import pyodbc
-import time
 
 # DESKTOP-QH4FU0U\SQLEXPRESS - database address
-# Define ip and port and database address
-TIMEOUT = 7
-max_Retries = 3
+# Define ip and port and connection to database
+timeout = 7
+max_Retries = 4
 client_Port = 5000
 ip = "127.0.0.1"
 port = 1234
@@ -124,6 +123,7 @@ def check_worker_exists(connection):
 
 # Establish TCP connection between the client and this SQL server
 def tcp_connection():
+    # Create a TCP socket to connect to the client
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((ip, port))
     sock.listen(2)
@@ -131,7 +131,10 @@ def tcp_connection():
     while True:
         client, address = sock.accept()
         print(f"Connected to the client - {address[0]}:{address[1]}")
-        list_of_Queries = "list of queries: \nprint workers\nprint workers sorted\nadd worker\nremove worker\nget worker details\nget " \
+
+        # Send list of queries to the client
+        list_of_Queries = "list of queries: \nprint workers\nprint workers sorted\nadd worker\nremove worker\nget " \
+                          "worker details\nget " \
                           "first n workers details\nupdate worker salary\ncount workers\ncount workers with given " \
                           "salary\ncheck worker exists\n "
         client.send(bytes(list_of_Queries, "utf-8"))
@@ -169,7 +172,7 @@ def reliable_send(sock, data, address):
     ack_received = False
     while not ack_received and retries < max_Retries:
         sock.sendto(data, address)
-        sock.settimeout(TIMEOUT)
+        sock.settimeout(timeout)
         try:
             ack, _ = sock.recvfrom(max_Size)
             if ack == b"ACK":
@@ -182,59 +185,70 @@ def reliable_send(sock, data, address):
         exit()
 
 
+# Establish RUDP connection between the server and the client
 def RUDP_Connection():
-    # Create UDP socket
+    # Create a UDP socket to connect to the client
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((ip, port))
-    print("UDP Server started")
+    print("SQL Server is starting...")
 
-    # Receive initial message from client
+    # Receive initial message from the client
     data, address = sock.recvfrom(max_Size)
     print(f"Received from client {address}: {data.decode('utf-8')}")
 
-    # Send list of queries to client
-    queries = "list of queries: \nprint workers\nprint workers sorted\nadd worker\nremove worker\nget worker details\nget first n workers details\nupdate worker salary\ncount workers\ncount workers with given salary\ncheck worker exists\n"
+    # Send list of queries to the client
+    queries = "list of queries: \nprint workers\nprint workers sorted\nadd worker\nremove worker\nget worker " \
+              "details\nget first n workers details\nupdate worker salary\ncount workers\ncount workers with given " \
+              "salary\ncheck worker exists\n "
     reliable_send(sock, queries.encode('utf-8'), address)
-    count_Timeouts = 0
-    # Receive query name from client
+    print("Sent list of queries to the client")
+    count_Timeouts = 1
+    received_queries = set()  # Will be used to check if we receive duplicate requests
+    # Receive query name from the client and execute it
     while True:
         try:
-            sock.settimeout(TIMEOUT)
+            sock.settimeout(timeout)
             data, address = sock.recvfrom(max_Size)
             data = data.decode('utf-8')
             if data != "ACK":
-                count_Timeouts = 0
+                count_Timeouts = 1
                 print(f"Received from client {address}: {data}")
-                sock.sendto("ACK".encode("utf-8"), (ip, client_Port))
-                desired_Query = data
-                if desired_Query == "print workers":
-                    print_workers(connection)
-                elif desired_Query == "print workers sorted":
-                    print_workers_sorted(connection)
-                elif desired_Query == "add worker":
-                    add_worker(connection)
-                elif desired_Query == "remove worker":
-                    remove_worker(connection)
-                elif desired_Query == "get worker details":
-                    get_worker_details(connection)
-                elif desired_Query == "get first n workers details":
-                    get_first_n_workers_details(connection)
-                elif desired_Query == "update worker salary":
-                    update_worker_salary(connection)
-                elif desired_Query == "count workers with given salary":
-                    count_workers_with_given_salary(connection)
-                elif desired_Query == "check worker exists":
-                    check_worker_exists(connection)
-                elif desired_Query == "count workers":
-                    count_workers(connection)
-                elif desired_Query == "nothing":
-                    break
-                else:
-                    print("Query entered doesn't exist")
+                if data in received_queries:  # Received the same query with same serial number
+                    print("Duplicate request detected")
+                    sock.sendto("ACK".encode("utf-8"), (ip, client_Port))
+                if data not in received_queries:
+                    received_queries.add(data)
+                    sock.sendto("ACK".encode("utf-8"), (ip, client_Port))
+                    desired_Query = data
+                    if "print workers sorted" in desired_Query:
+                        print_workers_sorted(connection)
+                    elif "print workers" in desired_Query:
+                        print_workers(connection)
+                    elif "add worker" in desired_Query:
+                        add_worker(connection)
+                    elif "remove worker" in desired_Query:
+                        remove_worker(connection)
+                    elif "get worker details" in desired_Query:
+                        get_worker_details(connection)
+                    elif "get first n workers details" in desired_Query:
+                        get_first_n_workers_details(connection)
+                    elif "update worker salary" in desired_Query:
+                        update_worker_salary(connection)
+                    elif "count workers with given salary" in desired_Query:
+                        count_workers_with_given_salary(connection)
+                    elif "check worker exists" in desired_Query:
+                        check_worker_exists(connection)
+                    elif "count workers" in desired_Query:
+                        count_workers(connection)
+                    elif "nothing" in desired_Query:
+                        print("Client chose to stop sending requests, closing server...")
+                        break
+                    else:
+                        print("Query entered doesn't exist")
         except socket.timeout:
-            print("Timeout while waiting for query")
+            print(f"Timeout while waiting for query #{count_Timeouts}")
             count_Timeouts += 1
-            if count_Timeouts == 3:
+            if count_Timeouts == 4:
                 sock.sendto("Timed out".encode("utf-8"), (ip, client_Port))
                 print("Stopped receiving requests from client, closing server...")
                 break
@@ -243,6 +257,6 @@ def RUDP_Connection():
 
 if __name__ == '__main__':
     # Starts the SQL server, TCP connection
-    # tcp_connection()
+    tcp_connection()
     # Starts the SQL server, RUDP connection
-    RUDP_Connection()
+    # RUDP_Connection()
