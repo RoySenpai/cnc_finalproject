@@ -1,8 +1,8 @@
 import socket
-import time
 
-# Define parameters for ports and packet maximum size
-MAX_SIZE = 1024
+
+# Define variables for ports and packet maximum size
+max_Size = 1024
 server_DHCPPort = 67
 client_DHCPPort = 68
 port = 1234
@@ -12,7 +12,7 @@ ip = "127.0.0.1"
 class DHCP_client(object):
     def client(self):
         # Create a socket for the client and send a discovery pacakge in a broadcast
-        print("DHCP Client starting...\n")
+        print("DHCP Client is starting...\n")
         destination = ('<broadcast>', server_DHCPPort)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -22,17 +22,15 @@ class DHCP_client(object):
         data = DHCP_client.get_Discover()
         sock.sendto(data, destination)
 
-        data, address = sock.recvfrom(MAX_SIZE)
+        data, address = sock.recvfrom(max_Size)
         print("Received DHCP offers.")
-        # print(data)
 
         print("Sending DHCP request.")
         data = DHCP_client.get_Request()
         sock.sendto(data, destination)
 
-        data, address = sock.recvfrom(MAX_SIZE)
+        data, address = sock.recvfrom(max_Size)
         print("Received DHCP pack.\n")
-        # print(data)
         sock.close()
 
     def get_Discover():
@@ -94,32 +92,37 @@ def dns_client():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.connect(('localhost', 9999))
 
-    domain_name = input('Enter domain name: ')
+    domain_Name = input('Enter domain name: ')
 
     # send the domain name entered by user to the dns server
-    sock.send(domain_name.encode('utf-8'))
+    sock.send(domain_Name.encode('utf-8'))
 
     # receive the IP address response from the dns server
-    ip_address = sock.recv(1024).decode('utf-8')
+    ip_Address = sock.recv(1024).decode('utf-8')
 
-    print('IP Address:', ip_address)
+    print('IP Address:', ip_Address)
     sock.close()
 
 
-def app_client():
+def app_client_TCP():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((ip, port))
-    list_of_Queries = sock.recv(1024).decode("utf-8")
+    list_of_Queries = sock.recv(max_Size).decode("utf-8")
     print(list_of_Queries)
     while True:
-        query = input("Please enter the name of the query you wish to use or the word nothing: ")
+        query = input("Please enter the name of the query you wish to use or the word nothing to stop the loop: ")
         sock.send(bytes(query, "utf-8"))
         if query == "nothing":
             break
 
 
 if __name__ == '__main__':
+    # Starts the DHCP client
     # dhcp_client = DHCP_client()
     # dhcp_client.client()
+
+    # Starts the DNS client
     # dns_client()
-    app_client()
+
+    # Starts the app client
+    app_client_TCP()
