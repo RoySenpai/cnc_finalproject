@@ -85,9 +85,6 @@ while True:
                 timeout *= 1.2  # Decrease the transmission rate
             break
 
-    if retries == max_Retries:
-        print(f"Maximum number of retries reached while trying to send query #{query_num}, closing connection...")
-        exit()
-    query_num += 1
+    
 
 sock.close()
