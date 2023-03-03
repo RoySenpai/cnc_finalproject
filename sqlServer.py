@@ -3,11 +3,11 @@ import pyodbc
 
 # DESKTOP-QH4FU0U\SQLEXPRESS - database address
 # Define ip and port and connection to database
-timeout = 7
-max_Retries = 4
+timeout = 15
+max_Retries = 3
 client_Port = 5000
 ip = "127.0.0.1"
-port = 1234
+server_Port = 1234
 max_Size = 1024
 connection = pyodbc.connect(
     'Driver={SQL Server};' 'Server=DESKTOP-QH4FU0U\SQLEXPRESS; ' 'Database=project;' 'Trusted_connection=yes;')
@@ -16,22 +16,24 @@ connection = pyodbc.connect(
 # Prints all the worker names in the table
 def print_workers(connection):
     cursor = connection.cursor()
-    print("Workers list: ")
+    output_str = "Workers list:\n"
     cursor.execute('SELECT [First Name] FROM Workers')
     for row in cursor:
-        print(row)
+        output_str += str(row[0]) + "\n"
     connection.commit()
+    return output_str
 
 
 # Prints all the worker details sorted by their last name
 def print_workers_sorted(connection):
     cursor = connection.cursor()
-    print("Sorted workers list: ")
+    output_str = "Sorted workers list:\n"
     cursor.execute("SELECT CAST([First Name] as varchar(max)) as [First Name], CAST([Last name] as varchar(max)) as ["
                    "Last name], [ID], [Work ID], [Salary] FROM Workers ORDER BY [Last name]")
     for row in cursor:
-        print(row)
+        output_str += str(row) + "\n"
     connection.commit()
+    return output_str
 
 
 # Adds a new worker to the table
@@ -62,9 +64,11 @@ def get_worker_details(connection):
     cursor = connection.cursor()
     work_Id = input("enter worker's work ID:")
     cursor.execute('SELECT * FROM Workers WHERE [Work ID] = 'f'{work_Id}')
+    output_str = ""
     for row in cursor:
-        print(row)
+        output_str += str(row) + "\n"
     connection.commit()
+    return output_str
 
 
 # Prints the details for the first given amount of workers
@@ -72,9 +76,11 @@ def get_first_n_workers_details(connection):
     cursor = connection.cursor()
     num = input("enter the amount of first workers you wish to get their details: ")
     cursor.execute((f"SELECT TOP {num} * FROM Workers"))
+    output_str = ""
     for row in cursor:
-        print(row)
+        output_str += str(row) + "\n"
     connection.commit()
+    return output_str
 
 
 # Updates a worker's salary
@@ -89,12 +95,14 @@ def update_worker_salary(connection):
 
 
 # Counts the amount of the workers in the table and prints the result
+
 def count_workers(connection):
     cursor = connection.cursor()
     cursor.execute("SELECT COUNT(*) FROM Workers")
     count = cursor.fetchone()[0]
-    print(f"There are currently {count} workers in the table.")
+    output_str = f"There are currently {count} workers in the table."
     connection.commit()
+    return output_str
 
 
 # Counts the amount of workers with a given salary and prints the result
@@ -103,11 +111,13 @@ def count_workers_with_given_salary(connection):
     salary = input("Enter salary: ")
     cursor.execute("SELECT COUNT(*) FROM Workers WHERE [Salary] = ?", salary)
     count = cursor.fetchone()[0]
+    output_str = ""
     if count > 0:
-        print(f"there are {count} workers with such salary")
+        output_str = f"there are {count} workers with such salary"
     else:
-        print("there are not workers with such salary")
+        output_str = "there are not workers with such salary"
     connection.commit()
+    return output_str
 
 
 # Given a name, Prints all workers with that name and their details
@@ -115,19 +125,21 @@ def check_worker_exists(connection):
     cursor = connection.cursor()
     name = input("enter the name of the worker you are looking for: ")
     cursor.execute("SELECT * FROM Workers WHERE CAST([First Name] as varchar(max)) = ?", name)
-    print(f"Here is a list of workers that their name is: {name}: ")
+    output_str = f"Here is a list of workers that their name is: {name}:\n"
     for row in cursor:
-        print(row)
+        output_str += str(row) + "\n"
     connection.commit()
+    return output_str
 
 
 # Establish TCP connection between the client and this SQL server
 def tcp_connection():
     # Create a TCP socket to connect to the client
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind((ip, port))
-    sock.listen(2)
+    sock.bind((ip, server_Port))
+    sock.listen(1)
     print("SQL Server is starting...")
+
     while True:
         client, address = sock.accept()
         print(f"Connected to the client - {address[0]}:{address[1]}")
@@ -138,39 +150,49 @@ def tcp_connection():
                           "first n workers details\nupdate worker salary\ncount workers\ncount workers with given " \
                           "salary\ncheck worker exists\n "
         client.send(bytes(list_of_Queries, "utf-8"))
+
+        # Receive query name from the client and execute it
         while True:
             desired_Query = client.recv(max_Size)
             desired_Query.decode("utf-8")
+            print(f"Received from client {address}: {desired_Query}")
             if desired_Query == b"print workers":
-                print_workers(connection)
+                client.send(bytes(print_workers(connection), "utf-8"))
             elif desired_Query == b"print workers sorted":
-                print_workers_sorted(connection)
+                client.send(bytes(print_workers_sorted(connection), "utf-8"))
             elif desired_Query == b"add worker":
                 add_worker(connection)
+                client.send(bytes("Worker added successfully", "utf-8"))
             elif desired_Query == b"remove worker":
                 remove_worker(connection)
+                client.send(bytes("Worker removed successfully", "utf-8"))
             elif desired_Query == b"get worker details":
-                get_worker_details(connection)
+                client.send(bytes(get_worker_details(connection), "utf-8"))
             elif desired_Query == b"get first n workers details":
-                get_first_n_workers_details(connection)
+                client.send(bytes(get_first_n_workers_details(connection), "utf-8"))
             elif desired_Query == b"update worker salary":
                 update_worker_salary(connection)
+                client.send(bytes("Successfully updated salary!", "utf-8"))
             elif desired_Query == b"count workers with given salary":
-                count_workers_with_given_salary(connection)
+                client.send(bytes(count_workers_with_given_salary(connection), "utf-8"))
             elif desired_Query == b"check worker exists":
-                check_worker_exists(connection)
+                client.send(bytes(check_worker_exists(connection), "utf-8"))
             elif desired_Query == b"count workers":
-                count_workers(connection)
+                client.send(bytes(count_workers(connection), "utf-8"))
             elif desired_Query == b"nothing":
+                print("Client chose to stop sending queries")
                 break
             else:
                 print("Query entered doesn't exist")
+                client.send(bytes("Invalid query", "utf-8"))
 
 
+# Reliable send from server to client
 def reliable_send(sock, data, address):
     retries = 0
     ack_received = False
     while not ack_received and retries < max_Retries:
+        sock.settimeout(timeout)
         sock.sendto(data, address)
         sock.settimeout(timeout)
         try:
@@ -179,9 +201,11 @@ def reliable_send(sock, data, address):
                 ack_received = True
         except socket.timeout:
             retries += 1
+            sock.settimeout(timeout)
     if not ack_received:
         print("No response received.")
         print("Closing the connection...")
+        sock.close()
         exit()
 
 
@@ -189,7 +213,7 @@ def reliable_send(sock, data, address):
 def RUDP_Connection():
     # Create a UDP socket to connect to the client
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((ip, port))
+    sock.bind((ip, server_Port))
     print("SQL Server is starting...")
 
     # Receive initial message from the client
@@ -204,6 +228,7 @@ def RUDP_Connection():
     print("Sent list of queries to the client")
     count_Timeouts = 1
     received_queries = set()  # Will be used to check if we receive duplicate requests
+
     # Receive query name from the client and execute it
     while True:
         try:
@@ -216,40 +241,60 @@ def RUDP_Connection():
                 if data in received_queries:  # Received the same query with same serial number
                     print("Duplicate request detected")
                     sock.sendto("ACK".encode("utf-8"), (ip, client_Port))
+                    sock.sendto(query_Result.encode("utf-8"), (ip, client_Port))
                 if data not in received_queries:
                     received_queries.add(data)
                     sock.sendto("ACK".encode("utf-8"), (ip, client_Port))
-                    desired_Query = data
-                    if "print workers sorted" in desired_Query:
-                        print_workers_sorted(connection)
-                    elif "print workers" in desired_Query:
-                        print_workers(connection)
-                    elif "add worker" in desired_Query:
+                    desired_Query = data.split("|")[0]
+                    print(desired_Query)
+                    if "print workers sorted" == desired_Query:
+                        query_Result = print_workers_sorted(connection)
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
+                    elif "print workers" == desired_Query:
+                        query_Result = print_workers(connection)
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
+                    elif "add worker" == desired_Query:
                         add_worker(connection)
-                    elif "remove worker" in desired_Query:
+                        query_Result = "Worker added successfully"
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
+                    elif "remove worker" == desired_Query:
                         remove_worker(connection)
-                    elif "get worker details" in desired_Query:
-                        get_worker_details(connection)
-                    elif "get first n workers details" in desired_Query:
-                        get_first_n_workers_details(connection)
-                    elif "update worker salary" in desired_Query:
+                        query_Result = "Worker removed successfully"
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
+                    elif "get worker details" == desired_Query:
+                        query_Result = get_worker_details(connection)
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
+                    elif "get first n workers details" == desired_Query:
+                        query_Result = get_first_n_workers_details(connection)
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
+                    elif "update worker salary" == desired_Query:
                         update_worker_salary(connection)
-                    elif "count workers with given salary" in desired_Query:
-                        count_workers_with_given_salary(connection)
-                    elif "check worker exists" in desired_Query:
-                        check_worker_exists(connection)
-                    elif "count workers" in desired_Query:
-                        count_workers(connection)
-                    elif "nothing" in desired_Query:
+                        query_Result = "Successfully updated salary!"
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
+                    elif "count workers with given salary" == desired_Query:
+                        query_Result = count_workers_with_given_salary(connection)
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
+                    elif "check worker exists" == desired_Query:
+                        query_Result = check_worker_exists(connection)
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
+                    elif "count workers" == desired_Query:
+                        query_Result = count_workers(connection)
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
+                    elif "nothing" == desired_Query:
+                        query_Result = "Closing connection"
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
                         print("Client chose to stop sending requests, closing server...")
                         break
-                    else:
+                    else:  # Case that an invalid query was entered by the client
+                        query_Result = "invalid query"
+                        reliable_send(sock, query_Result.encode("utf-8"), address)
                         print("Query entered doesn't exist")
-        except socket.timeout:
-            print(f"Timeout while waiting for query #{count_Timeouts}")
+        except socket.timeout:  # Timeout waiting for a query, after 3 timeouts the server will shut down
+            print(f"Timeout #{count_Timeouts} while waiting for query")
             count_Timeouts += 1
             if count_Timeouts == 4:
                 sock.sendto("Timed out".encode("utf-8"), (ip, client_Port))
+                sock.sendto("query result = null".encode("utf-8"), (ip, client_Port))
                 print("Stopped receiving requests from client, closing server...")
                 break
     sock.close()
@@ -257,6 +302,6 @@ def RUDP_Connection():
 
 if __name__ == '__main__':
     # Starts the SQL server, TCP connection
-    tcp_connection()
+    # tcp_connection()
     # Starts the SQL server, RUDP connection
-    # RUDP_Connection()
+    RUDP_Connection()
