@@ -1,6 +1,5 @@
 import socket
 
-
 # Define variables for ports and packet maximum size
 max_Size = 1024
 server_DHCPPort = 67
@@ -98,7 +97,7 @@ def dns_client():
     sock.send(domain_Name.encode('utf-8'))
 
     # receive the IP address response from the dns server
-    ip_Address = sock.recv(1024).decode('utf-8')
+    ip_Address = sock.recv(max_Size).decode('utf-8')
 
     print('IP Address:', ip_Address)
     sock.close()
@@ -113,7 +112,11 @@ def app_client_TCP():
         query = input("Please enter the name of the query you wish to use or the word nothing to stop the loop: ")
         sock.send(bytes(query, "utf-8"))
         if query == "nothing":
+            print("Closing connection...")
             break
+        result = sock.recv(max_Size).decode("utf-8")
+        print(f"Received result from server: {result}")
+    sock.close()
 
 
 if __name__ == '__main__':
@@ -122,7 +125,7 @@ if __name__ == '__main__':
     # dhcp_client.client()
 
     # Starts the DNS client
-    # dns_client()
+    # ()
 
     # Starts the app client
     app_client_TCP()
