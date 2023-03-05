@@ -2,12 +2,17 @@ import socket
 import time
 
 # Define ip, ports, max packet size and congestion control variables
-server_Port = 1234
+server_Port = 20159
 ip = "127.0.0.1"
-client_Port = 5000
+client_Port = 30175
 max_Size = 1024
 timeout = 15
 max_Retries = 3
+
+print("\n    SQL Client with reliabe UDP;  Copyright (C) 2023  Roy Simanovich and Yuval Yurzdichinsky\n"
+		 "This program comes with ABSOLUTELY NO WARRANTY.\n"
+		 "This is free software, and you are welcome to redistribute it\n"
+		 "under certain conditions; see `LICENSE' for details.\n\n")
 
 # Create a UDP socket to connect to the server
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -21,16 +26,16 @@ sock.sendto(message.encode('utf-8'), (ip, server_Port))
 while True:
     try:
         data, server_address = sock.recvfrom(max_Size)
-        print(f"Received from server {server_address}: {data.decode('utf-8')}")
+        print(f"[SQL] Received from server {server_address}: {data.decode('utf-8')}")
         sock.sendto("ACK".encode("utf-8"), (ip, server_Port))
         break
     except socket.timeout:
-        print("Timeout while waiting for queries")
+        print("[SQL] Timeout while waiting for queries")
 
 # Send queries to the server
 query_num = 1  # Query serial number
 while True:
-    query_name = input("Choose query to use, or type nothing to stop: ")
+    query_name = input("[SQL] Choose query to use, or type nothing to stop: ")
     query_name = query_name + "|" + str(query_num)
     retries = 0
     while retries < max_Retries:
@@ -40,7 +45,7 @@ while True:
         try:
             if "nothing" in query_name:
                 sock.sendto("ACK".encode("utf-8"), (ip, server_Port))
-                print("Closing connection...")
+                print("[SQL] Closing connection...")
                 sock.close()
                 exit()
             data, address = sock.recvfrom(max_Size)
@@ -50,7 +55,7 @@ while True:
                 while not result_received:
                     try:
                         if retries > 0: # Resend message
-                            print("Retrying to send...")
+                            print("[SQL] Retrying to send...")
                             sock.sendto("ACK".encode("utf-8"), (ip, server_Port))
                             sock.sendto(query_name.encode('utf-8'), (ip, server_Port))
                         sock.settimeout(timeout)
@@ -59,24 +64,24 @@ while True:
                         sock.sendto("ACK".encode("utf-8"), (ip, server_Port))
                         result_received = True
                     except socket.timeout:
-                        print(f"Timeout while waiting for query result #{query_num}")
+                        print(f"[SQL] Timeout while waiting for query result #{query_num}")
                         retries += 1
                         if retries == max_Retries:
-                            print(f"Maximum number of retries reached while waiting for query result #{query_num}, "
+                            print(f"[SQL] Maximum number of retries reached while waiting for query result #{query_num}, "
                                   f"closing connection...")
                             sock.close()
                             exit()
             elif data == "Timed out":
-                print("Server timed out, closing connection...")
+                print("[SQL] Server timed out, closing connection...")
                 sock.close()
                 exit()
         except socket.timeout:
             retries += 1  # increase retries counter by 1
-            print(f"timeout #{retries}, trying again")
+            print(f"[SQL] Timeout #{retries}, trying again")
             pass  # Retry if timeout occurs
 
         if data != "Timed out":
-            print(f"Received from server {server_address}: {result}, {data}")
+            print(f"[SQL] Received from server {server_address}: {result}, {data}")
             end_time = time.time()  # Measure the end time of transmission
             rtt = end_time - start_time  # Calculate the RTT
             if rtt < 0.5 * timeout:

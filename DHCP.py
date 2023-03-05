@@ -8,7 +8,12 @@ client_DHCPPort = 68
 
 class DHCP_server(object):
     def server(self):
-        print("DHCP server starting...\n")
+        print("\n    DHCP Server;  Copyright (C) 2023  Roy Simanovich and Yuval Yurzdichinsky\n"
+		 "This program comes with ABSOLUTELY NO WARRANTY.\n"
+		 "This is free software, and you are welcome to redistribute it\n"
+		 "under certain conditions; see `LICENSE' for details.\n\n")
+            
+        print("[DHCP] DHCP server starting...\n")
 
         # Create a socket for the server to connect to the client
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -19,20 +24,20 @@ class DHCP_server(object):
 
         while 1:
             try:
-                print("Waiting for a DHCP discovery...")
+                print("[DHCP] Waiting for a DHCP discovery...")
                 data, address = s.recvfrom(max_Size)
-                print("Received a DHCP discovery.")
+                print("[DHCP] Received a DHCP discovery.")
 
-                print("Sending a DHCP offer...")
+                print("[DHCP] Sending a DHCP offer...")
                 data = DHCP_server.offer_get()
                 s.sendto(data, destination)
                 while 1:
                     try:
-                        print("Waiting for a DHCP request...")
+                        print("[DHCP] Waiting for a DHCP request...")
                         data, address = s.recvfrom(max_Size)
-                        print("Received DHCP request.")
+                        print("[DHCP] Received DHCP request.")
 
-                        print("Sending a DHCP pack... \n")
+                        print("[DHCP] Sending a DHCP pack... \n")
                         data = DHCP_server.pack_get()
                         s.sendto(data, destination)
                         break
@@ -42,59 +47,60 @@ class DHCP_server(object):
                 raise
 
     def offer_get():
+        op_Code = bytes([0x02])                                 # Type - Response (1 byte)
+        hw_Type = bytes([0x01])                                 # Hardware type - Ethernet (1 byte)
+        hw_Len = bytes([0x06])                                  # Hardware address length - 6 bytes
+        hops = bytes([0x00])                                    # Hops - 0
+        XID = bytes([0x39, 0x03, 0xF3, 0x26])                   # Transaction ID - 4 bytes
+        secs = bytes([0x00, 0x00])                              # Seconds elapsed - 2 bytes
+        flags = bytes([0x00, 0x00])                             # Flags - 2 bytes
+        ciaddr = bytes([0, 0, 0, 0])                            # Client IP address - 4 bytes
+        yiaddr = bytes([192, 168, 1, 100])                      # Your (client) IP address - 4 bytes
+        siaddr = bytes([192, 168, 1, 1])                        # Server IP address - 4 bytes
+        giaddr = bytes([0, 0, 0, 0])                            # Gateway IP address - 4 bytes
+        c_Hwaddr1 = bytes([0x00, 0x05, 0x3C, 0x04])             # Client hardware address (4 bytes)
+        c_Hwaddr2 = bytes([0x8D, 0x59, 0x00, 0x00])             # Client hardware address (4 bytes)
+        c_Hwaddr3 = bytes([0x00, 0x00, 0x00, 0x00])             # Client hardware address (4 bytes) - Unused
+        c_Hwaddr4 = bytes([0x00, 0x00, 0x00, 0x00])             # Client hardware address (4 bytes) - Unused
+        c_Hwaddr5 = bytes(192)                                  # Zero padding (192 bytes)
+        magic_Cookie = bytes([0x63, 0x82, 0x53, 0x63])          # Magic cookie - 4 bytes
+        DHCP_Options1 = bytes([53, 1, 2])                       # DHCP message type - Offer (1 byte)
+        DHCP_Options2 = bytes([1, 4, 255, 255, 255, 0])         # Subnet mask - 4 bytes
+        DHCP_Options3 = bytes([3, 4, 192, 168, 1, 1])           # Router - 4 bytes
+        DHCP_Options4 = bytes([51, 4, 0x00, 0x01, 0x51, 0x80])  # IP address lease time - 4 bytes (1 day)
+        DHCP_Options5 = bytes([54, 4, 192, 168, 1, 1])          # Server identifier - 4 bytes
+        END_packet = bytes([255])                               # End option - 1 byte
 
-        op_Code = bytes([0x02])
-        hw_Type = bytes([0x01])
-        hw_Len = bytes([0x06])
-        hops = bytes([0x00])
-        XID = bytes([0x39, 0x03, 0xF3, 0x26])
-        secs = bytes([0x00, 0x00])
-        flags = bytes([0x00, 0x00])
-        ciaddr = bytes([0x00, 0x00, 0x00, 0x00])
-        yiaddr = bytes([0xC0, 0xA8, 0x01, 0x64])
-        siaddr = bytes([0xC0, 0xA8, 0x01, 0x01])
-        giaddr = bytes([0x00, 0x00, 0x00, 0x00])
-        c_Hwaddr1 = bytes([0x00, 0x05, 0x3C, 0x04])
-        c_Hwaddr2 = bytes([0x8D, 0x59, 0x00, 0x00])
-        c_Hwaddr3 = bytes([0x00, 0x00, 0x00, 0x00])
-        c_Hwaddr4 = bytes([0x00, 0x00, 0x00, 0x00])
-        c_Hwaddr5 = bytes(192)
-        magic_Cookie = bytes([0x63, 0x82, 0x53, 0x63])
-        DHCP_Options1 = bytes([53, 1, 2])
-        DHCP_Options2 = bytes([1, 4, 0xFF, 0xFF, 0xFF, 0x00])
-        DHCP_Options3 = bytes([3, 4, 0xC0, 0xA8, 0x01, 0x01])
-        DHCP_Options4 = bytes([51, 4, 0x00, 0x01, 0x51, 0x80])
-        DHCP_Options5 = bytes([54, 4, 0xC0, 0xA8, 0x01, 0x01])
-
-        pack = op_Code + hw_Type + hw_Len + hops + XID + secs + flags + ciaddr + yiaddr + siaddr + giaddr + c_Hwaddr1 + c_Hwaddr2 + c_Hwaddr3 + c_Hwaddr4 + c_Hwaddr5 + magic_Cookie + DHCP_Options1 + DHCP_Options2 + DHCP_Options3 + DHCP_Options4 + DHCP_Options5
+        pack = op_Code + hw_Type + hw_Len + hops + XID + secs + flags + ciaddr + yiaddr + siaddr + giaddr + c_Hwaddr1 + c_Hwaddr2 + c_Hwaddr3 + c_Hwaddr4 + c_Hwaddr5 + magic_Cookie + DHCP_Options1 + DHCP_Options2 + DHCP_Options3 + DHCP_Options4 + DHCP_Options5 + END_packet
 
         return pack
 
     def pack_get():
-        op_Code = bytes([0x02])
-        hw_Type = bytes([0x01])
-        hw_Len = bytes([0x06])
-        hops = bytes([0x00])
-        XID = bytes([0x39, 0x03, 0xF3, 0x26])
-        secs = bytes([0x00, 0x00])
-        flags = bytes([0x00, 0x00])
-        ciaddr = bytes([0x00, 0x00, 0x00, 0x00])
-        yiaddr = bytes([0xC0, 0xA8, 0x01, 0x64])
-        siaddr = bytes([0xC0, 0xA8, 0x01, 0x01])
-        giaddr = bytes([0x00, 0x00, 0x00, 0x00])
-        c_Hwaddr1 = bytes([0x00, 0x05, 0x3C, 0x04])
-        c_Hwaddr2 = bytes([0x8D, 0x59, 0x00, 0x00])
-        c_Hwaddr3 = bytes([0x00, 0x00, 0x00, 0x00])
-        c_Hwaddr4 = bytes([0x00, 0x00, 0x00, 0x00])
-        c_Hwaddr5 = bytes(192)
-        magic_Cookie = bytes([0x63, 0x82, 0x53, 0x63])
-        DHCP_Options1 = bytes([53, 1, 5])
-        DHCP_Options2 = bytes([1, 4, 0xFF, 0xFF, 0xFF, 0x00])
-        DHCP_Options3 = bytes([3, 4, 0xC0, 0xA8, 0x01, 0x01])
-        DHCP_Options4 = bytes([51, 4, 0x00, 0x01, 0x51, 0x80])
-        DHCP_Options5 = bytes([54, 4, 0xC0, 0xA8, 0x01, 0x01])
+        op_Code = bytes([0x02])                                 # Type - Response (1 byte)
+        hw_Type = bytes([0x01])                                 # Hardware type - Ethernet (1 byte)
+        hw_Len = bytes([0x06])                                  # Hardware address length - 6 bytes
+        hops = bytes([0x00])                                    # Hops - 0
+        XID = bytes([0x39, 0x03, 0xF3, 0x26])                   # Transaction ID - 4 bytes
+        secs = bytes([0x00, 0x00])                              # Seconds elapsed - 2 bytes
+        flags = bytes([0x00, 0x00])                             # Flags - 2 bytes
+        ciaddr = bytes([0, 0, 0, 0])                            # Client IP address - 4 bytes
+        yiaddr = bytes([192, 168, 1, 100])                      # Your (client) IP address - 4 bytes
+        siaddr = bytes([192, 168, 1, 1])                        # Server IP address - 4 bytes
+        giaddr = bytes([0, 0, 0, 0])                            # Gateway IP address - 4 bytes
+        c_Hwaddr1 = bytes([0x00, 0x05, 0x3C, 0x04])             # Client hardware address (4 bytes)
+        c_Hwaddr2 = bytes([0x8D, 0x59, 0x00, 0x00])             # Client hardware address (4 bytes)
+        c_Hwaddr3 = bytes([0x00, 0x00, 0x00, 0x00])             # Client hardware address (4 bytes) - Unused
+        c_Hwaddr4 = bytes([0x00, 0x00, 0x00, 0x00])             # Client hardware address (4 bytes) - Unused
+        c_Hwaddr5 = bytes(192)                                  # Zero padding (192 bytes)
+        magic_Cookie = bytes([0x63, 0x82, 0x53, 0x63])          # Magic cookie - 4 bytes
+        DHCP_Options1 = bytes([53, 1, 5])                       # DHCP message type - ACK (1 byte)
+        DHCP_Options2 = bytes([1, 4, 255, 255, 255, 0])         # Subnet mask - 4 bytes
+        DHCP_Options3 = bytes([3, 4, 192, 168, 1, 1])           # Router - 4 bytes
+        DHCP_Options4 = bytes([51, 4, 0x00, 0x01, 0x51, 0x80])  # IP address lease time - 4 bytes (1 day)
+        DHCP_Options5 = bytes([54, 4, 192, 168, 1, 1])          # Server identifier - 4 bytes
+        END_packet = bytes([255])                               # End option - 1 byte
 
-        pack = op_Code + hw_Type + hw_Len + hops + XID + secs + flags + ciaddr + yiaddr + siaddr + giaddr + c_Hwaddr1 + c_Hwaddr2 + c_Hwaddr3 + c_Hwaddr4 + c_Hwaddr5 + magic_Cookie + DHCP_Options1 + DHCP_Options2 + DHCP_Options3 + DHCP_Options4 + DHCP_Options5
+        pack = op_Code + hw_Type + hw_Len + hops + XID + secs + flags + ciaddr + yiaddr + siaddr + giaddr + c_Hwaddr1 + c_Hwaddr2 + c_Hwaddr3 + c_Hwaddr4 + c_Hwaddr5 + magic_Cookie + DHCP_Options1 + DHCP_Options2 + DHCP_Options3 + DHCP_Options4 + DHCP_Options5 + END_packet
 
         return pack
 

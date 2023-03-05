@@ -2,7 +2,14 @@ import socket
 
 max_Size = 1024  # Message max size
 ip = "127.0.0.1"
-print("Starting dns server...")
+
+
+print("\n    DNS Server;  Copyright (C) 2023  Roy Simanovich and Yuval Yurzdichinsky\n"
+		 "This program comes with ABSOLUTELY NO WARRANTY.\n"
+		 "This is free software, and you are welcome to redistribute it\n"
+		 "under certain conditions; see `LICENSE' for details.\n\n")
+
+print("[DNS] Starting dns server...")
 
 # create a socket for the dns server
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -13,11 +20,11 @@ while True:
     domain_name, client_address = sock.recvfrom(max_Size)
     domain_name = domain_name.decode('utf-8')
 
-    # resolve domain name to its IP address using google's public DNS server
+    # resolve domain name to its IP address using google's public DNS server, via TCP (port 53)
     try:
         address_info = socket.getaddrinfo(domain_name, 80, socket.AF_INET, socket.SOCK_STREAM)
         ip_address = address_info[0][4][0]
         sock.sendto(ip_address.encode('utf-8'), client_address)
-        print("sent IP to client successfully!")
+        print("[DNS] Sent IP to client successfully!")
     except socket.gaierror:
         sock.sendto("Could not find IP address for this domain".encode('utf-8'), client_address)
