@@ -101,15 +101,14 @@ def dns_client():
     try:
         # create a socket for the dns client
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.connect(('localhost', server_DNSPort))
 
         domain_Name = input('[DNS] Enter domain name: ')
 
         # send the domain name entered by user to the dns server
-        sock.send(domain_Name.encode('utf-8'))
+        sock.sendto(domain_Name.encode('utf-8'), ('localhost', server_DNSPort))
 
         # receive the IP address response from the dns server
-        ip_Address = sock.recv(max_Size).decode('utf-8')
+        ip_Address = sock.recvfrom(max_Size).decode('utf-8')
 
         print('[DNS] IP Address:', ip_Address)
         sock.close()
