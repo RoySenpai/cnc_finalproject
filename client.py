@@ -5,8 +5,15 @@ import uuid
 max_Size = 1024
 server_DHCPPort = 67
 client_DHCPPort = 68
+server_DNSPort = 53
 port = 20159
 ip = "127.0.0.1"
+
+zeroTupples = (0, 0, 0, 0)
+
+# Define variables for MAC address
+C_mac_part1 = [0x08, 0x00, 0x27, 0x80]
+C_mac_part2 = [0xd5, 0x8a, 0x00, 0x00]
 
 
 class DHCP_client(object):
@@ -43,14 +50,14 @@ class DHCP_client(object):
         XID = bytes([0x39, 0x03, 0xF3, 0x26])                   # Transaction ID (4 bytes)
         secs = bytes([0x00, 0x00])                              # Seconds elapsed (2 bytes)
         flags = bytes([0x00, 0x00])                             # Flags (2 bytes)
-        ciaddr = bytes([0x00, 0x00, 0x00, 0x00])                # Client IP address (4 bytes)
-        yiaddr = bytes([0x00, 0x00, 0x00, 0x00])                # Your IP address (4 bytes)
-        siaddr = bytes([0x00, 0x00, 0x00, 0x00])                # Server IP address (4 bytes)
-        giaddr = bytes([0x00, 0x00, 0x00, 0x00])                # Gateway IP address (4 bytes)
-        c_Hwaddr1 = bytes([0x00, 0x05, 0x3C, 0x04])             # Client hardware address (4 bytes)
-        c_Hwaddr2 = bytes([0x8D, 0x59, 0x00, 0x00])             # Client hardware address (4 bytes)
-        c_Hwaddr3 = bytes([0x00, 0x00, 0x00, 0x00])             # Client hardware address (4 bytes) - Unused
-        c_Hwaddr4 = bytes([0x00, 0x00, 0x00, 0x00])             # Client hardware address (4 bytes) - Unused
+        ciaddr = bytes(zeroTupples)                            # Client IP address (4 bytes)
+        yiaddr = bytes(zeroTupples)                            # Your IP address (4 bytes)
+        siaddr = bytes(zeroTupples)                            # Server IP address (4 bytes)
+        giaddr = bytes(zeroTupples)                            # Gateway IP address (4 bytes)
+        c_Hwaddr1 = bytes(C_mac_part1)                          # Client hardware address (4 bytes)
+        c_Hwaddr2 = bytes(C_mac_part2)                          # Client hardware address (4 bytes)
+        c_Hwaddr3 = bytes(4)                                    # Client hardware address (4 bytes) - Unused
+        c_Hwaddr4 = bytes(4)                                    # Client hardware address (4 bytes) - Unused
         c_Hwaddr5 = bytes(192)                                  # Zero padding (192 bytes)
         magic_Cookie = bytes([0x63, 0x82, 0x53, 0x63])          # Magic cookie (4 bytes)
         DHCP_Options1 = bytes([53, 1, 1])                       # DHCP message type - Discover (3 bytes)
@@ -70,19 +77,19 @@ class DHCP_client(object):
         XID = bytes([0x39, 0x03, 0xF3, 0x26])                   # Transaction ID (4 bytes)
         secs = bytes([0x00, 0x00])                              # Seconds elapsed (2 bytes)
         flags = bytes([0x00, 0x00])                             # Flags (2 bytes)
-        ciaddr = bytes([0, 0, 0, 0])                            # Client IP address (4 bytes)
-        yiaddr = bytes([0, 0, 0, 0])                            # Your IP address (4 bytes)
-        siaddr = bytes([0, 0, 0, 0])                            # Server IP address (4 bytes)
-        giaddr = bytes([0, 0, 0, 0])                            # Gateway IP address (4 bytes)
-        c_Hwaddr1 = bytes([0x00, 0x05, 0x3C, 0x04])             # Client hardware address (4 bytes)
-        c_Hwaddr2 = bytes([0x8D, 0x59, 0x00, 0x00])             # Client hardware address (4 bytes)
-        c_Hwaddr3 = bytes([0x00, 0x00, 0x00, 0x00])             # Client hardware address (4 bytes) - Unused
-        c_Hwaddr4 = bytes([0x00, 0x00, 0x00, 0x00])             # Client hardware address (4 bytes) - Unused
+        ciaddr = bytes(zeroTupples)                            # Client IP address (4 bytes)
+        yiaddr = bytes(zeroTupples)                            # Your IP address (4 bytes)
+        siaddr = bytes(zeroTupples)                            # Server IP address (4 bytes)
+        giaddr = bytes(zeroTupples)                            # Gateway IP address (4 bytes)
+        c_Hwaddr1 = bytes(C_mac_part1)                          # Client hardware address (4 bytes)
+        c_Hwaddr2 = bytes(C_mac_part2)                          # Client hardware address (4 bytes)
+        c_Hwaddr3 = bytes(4)                                    # Client hardware address (4 bytes) - Unused
+        c_Hwaddr4 = bytes(4)                                    # Client hardware address (4 bytes) - Unused
         c_Hwaddr5 = bytes(192)                                  # Zero padding (192 bytes)
         magic_Cookie = bytes([0x63, 0x82, 0x53, 0x63])          # Magic cookie (4 bytes)
         DHCP_Options1 = bytes([53, 1, 3])                       # DHCP message type - Request (3 bytes)
-        DHCP_Options2 = bytes([50, 4, 192, 168, 1, 100])        # Requested IP address (6 bytes)
-        DHCP_Options3 = bytes([54, 4, 192, 168, 1, 1])          # Server IP address (6 bytes)
+        DHCP_Options2 = bytes([50, 4, 10, 0, 12, 2])            # Requested IP address (6 bytes)
+        DHCP_Options3 = bytes([54, 4, 10, 0, 12, 1])            # Server IP address (6 bytes)
         END_packet = bytes([255])                               # End of packet (1 byte) - Always 0xFF
 
         pack = op_Code + hw_Type + hw_Len + hops + XID + secs + flags + ciaddr + yiaddr + siaddr + giaddr + c_Hwaddr1 + c_Hwaddr2 + c_Hwaddr3 + c_Hwaddr4 + c_Hwaddr5 + magic_Cookie + DHCP_Options1 + DHCP_Options2 + DHCP_Options3 + END_packet
@@ -91,36 +98,44 @@ class DHCP_client(object):
 
 
 def dns_client():
-    # create a socket for the dns client
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.connect(('localhost', 9999))
+    try:
+        # create a socket for the dns client
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(('localhost', server_DNSPort))
 
-    domain_Name = input('[DNS] Enter domain name: ')
+        domain_Name = input('[DNS] Enter domain name: ')
 
-    # send the domain name entered by user to the dns server
-    sock.send(domain_Name.encode('utf-8'))
+        # send the domain name entered by user to the dns server
+        sock.send(domain_Name.encode('utf-8'))
 
-    # receive the IP address response from the dns server
-    ip_Address = sock.recv(max_Size).decode('utf-8')
+        # receive the IP address response from the dns server
+        ip_Address = sock.recv(max_Size).decode('utf-8')
 
-    print('[DNS] IP Address:', ip_Address)
-    sock.close()
+        print('[DNS] IP Address:', ip_Address)
+        sock.close()
+
+    except ConnectionRefusedError:
+        print("[DNS] Connection refused. Are you sure you are running the DNS server?")
 
 
 def app_client_TCP():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((ip, port))
-    list_of_Queries = sock.recv(max_Size).decode("utf-8")
-    print(list_of_Queries)
-    while True:
-        query = input("[SQL] Please enter the name of the query you wish to use or the word nothing to stop the loop: ")
-        sock.send(bytes(query, "utf-8"))
-        if query == "nothing":
-            print("[SQL] Closing connection...")
-            break
-        result = sock.recv(max_Size).decode("utf-8")
-        print(f"[SQL] Received result from server: {result}")
-    sock.close()
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((ip, port))
+        list_of_Queries = sock.recv(max_Size).decode("utf-8")
+        print(list_of_Queries)
+        while True:
+            query = input("[SQL] Please enter the name of the query you wish to use or the word nothing to stop the loop: ")
+            sock.send(bytes(query, "utf-8"))
+            if query == "nothing":
+                print("[SQL] Closing connection...")
+                break
+            result = sock.recv(max_Size).decode("utf-8")
+            print(f"[SQL] Received result from server: {result}")
+        sock.close()
+    
+    except ConnectionRefusedError:
+        print("[SQL] Connection refused. Are you sure you're running the SQL server?")
 
 
 if __name__ == '__main__':
