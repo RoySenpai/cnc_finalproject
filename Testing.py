@@ -52,7 +52,7 @@ class TestDNSServer(unittest.TestCase):
         self.assertEqual(expected_ip, actual_ip)
 
 
-class TestServer(unittest.TestCase):
+class TestSQLServer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.connection = pyodbc.connect(
