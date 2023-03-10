@@ -108,7 +108,7 @@ def dns_client():
         sock.sendto(domain_Name.encode('utf-8'), ('localhost', server_DNSPort))
 
         # receive the IP address response from the dns server
-        ip_Address = sock.recvfrom(max_Size).decode('utf-8')
+        ip_Address = sock.recv(max_Size).decode('utf-8')
 
         print('[DNS] IP Address:', ip_Address)
         sock.close()
