@@ -26,16 +26,16 @@ sock.sendto(message.encode('utf-8'), (ip, server_Port))
 while True:
     try:
         data, server_address = sock.recvfrom(max_Size)
-        print(f"[SQL] Received from server {server_address}: {data.decode('utf-8')}")
+        print(f"Received from server {server_address}: {data.decode('utf-8')}")
         sock.sendto("ACK".encode("utf-8"), (ip, server_Port))
         break
     except socket.timeout:
-        print("[SQL] Timeout while waiting for queries")
+        print("Timeout while waiting for queries")
 
 # Send queries to the server
 query_num = 1  # Query serial number
 while True:
-    query_name = input("[SQL] Choose query to use, or type nothing to stop: ")
+    query_name = input("Choose query to use, or type nothing to stop: ")
     query_name = query_name + "|" + str(query_num)
     retries = 0
     while retries < max_Retries:
@@ -45,7 +45,7 @@ while True:
         try:
             if "nothing" in query_name:
                 sock.sendto("ACK".encode("utf-8"), (ip, server_Port))
-                print("[SQL] Closing connection...")
+                print("Closing connection...")
                 sock.close()
                 exit()
             data, address = sock.recvfrom(max_Size)
@@ -55,7 +55,7 @@ while True:
                 while not result_received:
                     try:
                         if retries > 0: # Resend message
-                            print("[SQL] Retrying to send...")
+                            print("Retrying to send...")
                             sock.sendto("ACK".encode("utf-8"), (ip, server_Port))
                             sock.sendto(query_name.encode('utf-8'), (ip, server_Port))
                         sock.settimeout(timeout)
@@ -64,24 +64,24 @@ while True:
                         sock.sendto("ACK".encode("utf-8"), (ip, server_Port))
                         result_received = True
                     except socket.timeout:
-                        print(f"[SQL] Timeout while waiting for query result #{query_num}")
+                        print(f"Timeout while waiting for query result #{query_num}")
                         retries += 1
                         if retries == max_Retries:
-                            print(f"[SQL] Maximum number of retries reached while waiting for query result #{query_num}, "
+                            print(f"Maximum number of retries reached while waiting for query result #{query_num}, "
                                   f"closing connection...")
                             sock.close()
                             exit()
             elif data == "Timed out":
-                print("[SQL] Server timed out, closing connection...")
+                print("Server timed out, closing connection...")
                 sock.close()
                 exit()
         except socket.timeout:
             retries += 1  # increase retries counter by 1
-            print(f"[SQL] Timeout #{retries}, trying again")
+            print(f"timeout #{retries}, trying again")
             pass  # Retry if timeout occurs
 
         if data != "Timed out":
-            print(f"[SQL] Received from server {server_address}: {result}, {data}")
+            print(f"Received from server {server_address}: {result}, {data}")
             end_time = time.time()  # Measure the end time of transmission
             rtt = end_time - start_time  # Calculate the RTT
             if rtt < 0.5 * timeout:
@@ -90,6 +90,9 @@ while True:
                 timeout *= 1.2  # Decrease the transmission rate
             break
 
-    
+    if retries == max_Retries:
+        print(f"Maximum number of retries reached while trying to send query #{query_num}, closing connection...")
+        exit()
+    query_num += 1
 
 sock.close()

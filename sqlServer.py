@@ -12,12 +12,10 @@ max_Size = 1024
 
 
 # Database connection settings
-DB_DRIVER = '{ODBC Driver 17 for SQL Server}'
+DB_DRIVER = '{SQL Server}'
 DB_SERVER = 'localhost'
 DB_NAME = 'project'
-DB_USER = 'sa'
-DB_PASS = '<YourStrong@Passw0rd>'
-DB_TRUSTED_CONNECTION = 'no'
+DB_TRUSTED_CONNECTION = 'yes'
 
 # Prints all the worker names in the table
 def print_workers(connection):
@@ -246,8 +244,6 @@ def RUDP_Connection():
                 print(f"[SQL] Received from client {address}: {data}")
                 if data in received_queries:  # Received the same query with same serial number
                     print("[SQL] Duplicate request detected")
-                    sock.sendto("ACK".encode("utf-8"), (ip, client_Port))
-                    sock.sendto(query_Result.encode("utf-8"), (ip, client_Port))
                 if data not in received_queries:
                     received_queries.add(data)
                     sock.sendto("ACK".encode("utf-8"), (ip, client_Port))
@@ -315,7 +311,7 @@ if __name__ == '__main__':
 
     try:
         # Connect to the database
-        connection = pyodbc.connect('DRIVER=' + DB_DRIVER + ';SERVER='+ DB_SERVER +';DATABASE=' + DB_NAME + ';UID=' + DB_USER + ';PWD=' + DB_PASS + ';Trusted_connection=' + DB_TRUSTED_CONNECTION + ';')
+        connection = pyodbc.connect('DRIVER=' + DB_DRIVER + ';SERVER='+ DB_SERVER +';DATABASE=' + DB_NAME + ';Trusted_connection=' + DB_TRUSTED_CONNECTION + ';')
 
         print("Choose which protocol you want to use:")
         print("1. TCP Connection")
