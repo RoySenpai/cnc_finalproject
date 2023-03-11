@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from clientv2 import *
+from client import *
 import subprocess
 import time
 import socket
@@ -46,7 +46,7 @@ class TestDNSServer(unittest.TestCase):
 
     def test_client_resolves(self):
         expected_ip = socket.gethostbyname('www.google.com')
-        p = subprocess.Popen(['python', 'clientv2.py'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        p = subprocess.Popen(['python', 'client.py'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         output, err = p.communicate(b'www.google.com\n')
         actual_ip = output.decode('utf-8').split(': ')[-1].strip()
         self.assertEqual(expected_ip, actual_ip)
@@ -56,7 +56,7 @@ class TestSQLServer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.connection = pyodbc.connect(
-            'Driver={SQL Server};' 'Server=DESKTOP-QH4FU0U\SQLEXPRESS; ' 'Database=project;' 'Trusted_connection=yes;')
+            'Driver={SQL Server};' 'Server=localhost; ' 'Database=project;' 'Trusted_connection=yes;')
 
     @classmethod
     def tearDownClass(cls):
