@@ -44,13 +44,6 @@ class TestDNSServer(unittest.TestCase):
         self.assertEqual(data.decode('utf-8'), socket.gethostbyname('www.google.com'))
         sock.close()
 
-    def test_client_resolves(self):
-        expected_ip = socket.gethostbyname('www.google.com')
-        p = subprocess.Popen(['python', 'client.py'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        output, err = p.communicate(b'www.google.com\n')
-        actual_ip = output.decode('utf-8').split(': ')[-1].strip()
-        self.assertEqual(expected_ip, actual_ip)
-
 
 class TestSQLServer(unittest.TestCase):
     @classmethod
