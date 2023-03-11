@@ -185,6 +185,7 @@ def tcp_connection():
                 client.send(bytes(count_workers(connection), "utf-8"))
             elif desired_Query == b"nothing":
                 print("[SQL] Client chose to stop sending queries")
+                client.close()
                 break
             else:
                 print("[SQL] Query entered doesn't exist")
