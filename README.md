@@ -3,7 +3,7 @@
 
 **By Roy Simanovich and Yuval Yurzdichinsky**
 
-# Requirements
+## Requirements
 * Linux (Ubuntu 22.04 LTS recommanded)/Windows machine
 * Python 3
 * pyodbc library
